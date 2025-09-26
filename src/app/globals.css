@@ -82,7 +82,7 @@
   }
 
   .hover-lift {
-    @apply transition-all duration-300 hover:scale-105 hover:shadow-xl;
+    @apply transition-all duration-300 hover:scale-[1.01] hover:shadow-xl;
   }
 
   .hover-glow {

@@ -1,13 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import {
-  mainnet,
-  polygon,
-  arbitrum,
-  optimism,
-  base,
-  sepolia,
-  rootstockTestnet
-} from "wagmi/chains";
+import { rootstockTestnet } from "wagmi/chains";
 
 export const config = getDefaultConfig({
   appName: "Batch Chain",
@@ -16,4 +8,3 @@ export const config = getDefaultConfig({
   chains: [rootstockTestnet],
   ssr: true,
 });
-

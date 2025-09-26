@@ -63,7 +63,7 @@ export default function RecipientForm({ onAddRecipient, isSubmitting = false }: 
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto glass-card glow-border">
+    <Card className="w-full glass-card glow-border">
       <CardHeader>
         <CardTitle className="glow-text flex items-center gap-2">
           <Plus className="h-5 w-5" />
