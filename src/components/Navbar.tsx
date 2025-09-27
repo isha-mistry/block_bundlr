@@ -18,8 +18,8 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/5 backdrop-blur-2xl border-b border-white/10 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="fixed top-6 left-6 right-6 z-50 bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-full">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <div className="flex items-center space-x-4">
@@ -39,7 +39,7 @@ export default function Navbar() {
                   href="/same-chain"
                   className={`nav-link ${activeRoute === '/same-chain' ? 'nav-link-active' : 'text-gray-300 hover:text-white'}`}
                 >
-                  Same Chain
+                  Batch Actions
                 </Link>
               </div>
 
@@ -70,8 +70,8 @@ export default function Navbar() {
 
           {/* Mobile Navigation */}
           {isMobileMenuOpen && (
-            <div className="md:hidden mb-4">
-              <div className="glass-card-premium p-6 space-y-4">
+            <div className="md:hidden mb-4 mt-4">
+              <div className="glass-card-premium p-6 space-y-4 rounded-3xl mx-4">
                 <div className="flex flex-col space-y-3">
                   <Link
                     href="/"
@@ -85,7 +85,7 @@ export default function Navbar() {
                     className={`nav-link text-lg ${activeRoute === '/same-chain' ? 'nav-link-active' : 'text-gray-300 hover:text-white'}`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Same Chain
+                    Batch Actions
                   </Link>
                 </div>
                 <div className="pt-4 border-t border-white/10">

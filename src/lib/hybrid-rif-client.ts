@@ -1,19 +1,23 @@
-import { 
-  createPublicClient, 
-  createWalletClient, 
-  http, 
-  getAddress, 
-  parseEther, 
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  getAddress,
+  parseEther,
   formatEther,
   encodeFunctionData,
   type Address,
   type Hash,
   type PublicClient,
-  type WalletClient
-} from 'viem';
-import { rootstockTestnet } from 'viem/chains';
-import { RIF_RELAY_CONFIG, RIF_TOKEN_ABI, getRequiredRifTokens } from '../config/rif-config';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config/config';
+  type WalletClient,
+} from "viem";
+import { rootstockTestnet } from "viem/chains";
+import {
+  RIF_RELAY_CONFIG,
+  RIF_TOKEN_ABI,
+  getRequiredRifTokens,
+} from "../config/rif-config";
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../config/config";
 
 export interface SmartWalletInfo {
   address: Address;
@@ -48,7 +52,10 @@ export class HybridRIFClient {
   /**
    * Get smart wallet address for a user (deterministic)
    */
-  async getSmartWalletAddress(userAddress: Address, index: number = 0): Promise<Address> {
+  async getSmartWalletAddress(
+    userAddress: Address,
+    index: number = 0
+  ): Promise<Address> {
     // For this hybrid approach, we'll use the user's address as the smart wallet
     // In a full RIF Relay implementation, this would be a separate contract
     return userAddress;
@@ -64,10 +71,13 @@ export class HybridRIFClient {
   /**
    * Get smart wallet info
    */
-  async getSmartWallet(userAddress: Address, index: number = 0): Promise<SmartWalletInfo> {
+  async getSmartWallet(
+    userAddress: Address,
+    index: number = 0
+  ): Promise<SmartWalletInfo> {
     const address = await this.getSmartWalletAddress(userAddress, index);
     const isDeployed = await this.isSmartWalletDeployed(address);
-    
+
     return {
       address,
       isDeployed,
@@ -78,7 +88,10 @@ export class HybridRIFClient {
   /**
    * Check RIF token status for a user
    */
-  async checkTokenStatus(userAddress: Address, batchSize: number = 1): Promise<TokenStatus> {
+  async checkTokenStatus(
+    userAddress: Address,
+    batchSize: number = 1
+  ): Promise<TokenStatus> {
     const requiredRifTokens = getRequiredRifTokens(batchSize);
     const requiredAmount = parseEther(requiredRifTokens.toString());
 
@@ -87,17 +100,17 @@ export class HybridRIFClient {
         this.publicClient.readContract({
           address: RIF_RELAY_CONFIG.rifTokenAddress,
           abi: RIF_TOKEN_ABI,
-          functionName: 'balanceOf',
+          functionName: "balanceOf",
           args: [userAddress],
-          account: '0x0000000000000000000000000000000000000000',
-        }),
+          account: "0x0000000000000000000000000000000000000000",
+        }) as Promise<bigint>,
         this.publicClient.readContract({
           address: RIF_RELAY_CONFIG.rifTokenAddress,
           abi: RIF_TOKEN_ABI,
-          functionName: 'allowance',
+          functionName: "allowance",
           args: [userAddress, CONTRACT_ADDRESS], // Approve for the BatchTransfer contract
-          account: '0x0000000000000000000000000000000000000000',
-        }),
+          account: "0x0000000000000000000000000000000000000000",
+        }) as Promise<bigint>,
       ]);
 
       return {
@@ -107,10 +120,10 @@ export class HybridRIFClient {
         requiredAmount,
       };
     } catch (error) {
-      console.error('Error checking token status:', error);
+      console.error("Error checking token status:", error);
       return {
-        balance: 0n,
-        allowance: 0n,
+        balance: BigInt(0),
+        allowance: BigInt(0),
         isApproved: false,
         requiredAmount,
       };
@@ -120,7 +133,11 @@ export class HybridRIFClient {
   /**
    * Deploy smart wallet (no-op for hybrid approach)
    */
-  async deploySmartWallet(userAddress: Address, rifTokenAmount: bigint, index: number = 0): Promise<Hash> {
+  async deploySmartWallet(
+    userAddress: Address,
+    rifTokenAmount: bigint,
+    index: number = 0
+  ): Promise<Hash> {
     // In hybrid approach, we just approve tokens for the contract
     return await this.approveTokens(userAddress, rifTokenAmount);
   }
@@ -130,15 +147,16 @@ export class HybridRIFClient {
    */
   async approveTokens(userAddress: Address, amount: bigint): Promise<Hash> {
     if (!this.walletClient) {
-      throw new Error('Wallet client not set');
+      throw new Error("Wallet client not set");
     }
 
     const hash = await this.walletClient.writeContract({
       address: RIF_RELAY_CONFIG.rifTokenAddress,
       abi: RIF_TOKEN_ABI,
-      functionName: 'approve',
+      functionName: "approve",
       args: [CONTRACT_ADDRESS, amount], // Approve the BatchTransfer contract
       account: userAddress,
+      chain: rootstockTestnet,
     });
 
     return hash;
@@ -155,51 +173,56 @@ export class HybridRIFClient {
     rifTokenAmount: bigint
   ): Promise<Hash> {
     if (!this.walletClient) {
-      throw new Error('Wallet client not set');
+      throw new Error("Wallet client not set");
     }
 
     // Step 1: Transfer RIF tokens to pay for gas
-    console.log('Step 1: Paying gas with RIF tokens...');
+    console.log("Step 1: Paying gas with RIF tokens...");
     await this.payGasWithRIF(userAddress, rifTokenAmount);
 
     // Step 2: Execute the batch transfer on the real contract
-    console.log('Step 2: Executing batch transfer on BlockBundlr contract...');
-    const totalValue = amounts.reduce((acc, val) => acc + val, 0n);
+    console.log("Step 2: Executing batch transfer on BlockBundlr contract...");
+    const totalValue = amounts.reduce((acc, val) => acc + val, BigInt(0));
 
     const hash = await this.walletClient.writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
-      functionName: 'batchTransfer',
+      functionName: "batchTransfer",
       args: [recipients, amounts],
       value: totalValue,
       account: userAddress,
+      chain: rootstockTestnet,
     });
 
-    console.log('Batch transfer executed with hash:', hash);
+    console.log("Batch transfer executed with hash:", hash);
     return hash;
   }
 
   /**
    * Pay gas with RIF tokens (simplified implementation)
    */
-  private async payGasWithRIF(userAddress: Address, rifTokenAmount: bigint): Promise<Hash> {
+  private async payGasWithRIF(
+    userAddress: Address,
+    rifTokenAmount: bigint
+  ): Promise<Hash> {
     if (!this.walletClient) {
-      throw new Error('Wallet client not set');
+      throw new Error("Wallet client not set");
     }
 
     // In a full implementation, this would involve the RIF Relay infrastructure
     // For now, we'll transfer RIF tokens to a designated gas payment address
-    const gasPaymentAddress = '0x0000000000000000000000000000000000000001'; // Burn address as placeholder
+    const gasPaymentAddress = "0x0000000000000000000000000000000000000001"; // Burn address as placeholder
 
     const hash = await this.walletClient.writeContract({
       address: RIF_RELAY_CONFIG.rifTokenAddress,
       abi: RIF_TOKEN_ABI,
-      functionName: 'transfer',
+      functionName: "transfer",
       args: [gasPaymentAddress, rifTokenAmount],
       account: userAddress,
+      chain: rootstockTestnet,
     });
 
-    console.log('Gas payment with RIF tokens:', hash);
+    console.log("Gas payment with RIF tokens:", hash);
     return hash;
   }
 
@@ -208,16 +231,16 @@ export class HybridRIFClient {
    */
   async getRifBalance(userAddress: Address): Promise<bigint> {
     try {
-      return await this.publicClient.readContract({
+      return (await this.publicClient.readContract({
         address: RIF_RELAY_CONFIG.rifTokenAddress,
         abi: RIF_TOKEN_ABI,
-        functionName: 'balanceOf',
+        functionName: "balanceOf",
         args: [userAddress],
-        account: '0x0000000000000000000000000000000000000000',
-      });
+        account: "0x0000000000000000000000000000000000000000",
+      })) as bigint;
     } catch (error) {
-      console.error('Error getting RIF balance:', error);
-      return 0n;
+      console.error("Error getting RIF balance:", error);
+      return BigInt(0);
     }
   }
 

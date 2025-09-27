@@ -1,15 +1,18 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { Zap, Github, Twitter, Mail, Shield, Clock } from 'lucide-react';
+import { Heart, Sparkles } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-white/5 backdrop-blur-2xl border-t border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center text-gray-400 modern-text text-sm">
-          © 2025 BlockBundlR. All rights reserved. Powered by RIF.
+    <footer className="pb-8 px-6 w-full">
+      <div className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-lg rounded-full px-8 py-4">
+        <div className="text-center text-gray-400 modern-text text-sm flex items-center justify-center space-x-2">
+          <span>Made with</span>
+          <Heart className="w-4 h-4 text-orange-400 fill-current" />
+          <span>by BlockBundlR Team</span>
+          <Sparkles className="w-4 h-4 text-orange-400" />
+          <span className="hidden sm:inline">Powered by RIF</span>
         </div>
       </div>
     </footer>

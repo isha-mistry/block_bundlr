@@ -14,7 +14,7 @@ import { parseEther } from 'viem';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config/config';
 import { HybridRIFClient, type TokenStatus } from '../lib/hybrid-rif-client';
 import { getRequiredRifTokens } from '../config/rif-config';
-import DefiChatbot from "./ui/DefiChatbot";
+import FloatingChatbot from "./ui/FloatingChatbot";
 import { ParsedRecipient } from "./ui/DefiChatbot";
 
 // import { parseEther } from "viem"; // Keep for 18 decimals tokens
@@ -38,7 +38,7 @@ export default function BatchChainApp() {
     trtbc: 18,
     trbtc: 18, // Replace with actual decimal count of tRBTC token
   };
-  
+
   // Helper function to parse amount string into bigint based on decimals
   function parseAmount(amountStr: string, decimals: number): bigint {
     // Split integer and fractional part
@@ -49,17 +49,17 @@ export default function BatchChainApp() {
     const fractionPart = BigInt(fractionPadded);
     return wholePart + fractionPart;
   }
-  
+
   const handleSubmitParsedBatch = async (parsedRecipients: ParsedRecipient[]) => {
     if (parsedRecipients.length === 0) return;
-  
+
     setIsSubmitting(true);
     setError("");
-  
+
     try {
       // Filter batch by single token or pass all - depending on your contract logic
       const filtered = parsedRecipients.filter(r => tokenDecimalsMap[r.token.toLowerCase()] !== undefined);
-  
+
       // Separate by token if your contract supports only one token per call; here assume one token per batch call
       // For example, handle only 'trbtc':
       const tokenToSend = "trbtc";
@@ -67,12 +67,12 @@ export default function BatchChainApp() {
       if (recipientsForToken.length === 0) {
         throw new Error(`No recipients with token ${tokenToSend} found`);
       }
-  
+
       const decimals = tokenDecimalsMap[tokenToSend];
       const recipientAddresses = recipientsForToken.map(r => r.address);
       const recipientAmounts = recipientsForToken.map(r => parseAmount(r.amount, decimals));
       const totalValue = recipientAmounts.reduce((acc, val) => acc + val, BigInt(0));
-  
+
       // Set recipients for UI display
       const formattedRecipients = recipientsForToken.map(r => ({
         id: Date.now().toString() + Math.random().toString(36).substring(2),
@@ -80,7 +80,7 @@ export default function BatchChainApp() {
         amount: r.amount,
       }));
       setRecipients(formattedRecipients);
-  
+
       // Perform contract call based on payment method
       if (paymentMethod === 'rbtc') {
         await writeContract({
@@ -99,7 +99,7 @@ export default function BatchChainApp() {
 
         await rifClient.batchTransfer(
           address,
-          recipientAddresses,
+          recipientAddresses as `0x${string}`[],
           recipientAmounts,
           rifTokenAmount
         );
@@ -111,7 +111,7 @@ export default function BatchChainApp() {
       setIsSubmitting(false);
     }
   };
-  
+
 
   // Calculate total amount
   const totalAmount = useMemo(() => {
@@ -121,7 +121,7 @@ export default function BatchChainApp() {
     }, 0);
   }, [recipients]);
 
-  
+
 
   const handleAddRecipient = useCallback((recipient: { address: string; amount: string }) => {
     const newRecipient: Recipient = {
@@ -199,7 +199,7 @@ export default function BatchChainApp() {
 
         await rifClient.batchTransfer(
           address,
-          recipientAddresses,
+          recipientAddresses as `0x${string}`[],
           recipientAmounts,
           rifTokenAmount
         );
@@ -283,14 +283,14 @@ export default function BatchChainApp() {
     <div className="min-h-screen p-4 pt-24 pb-16">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
-        <div className="text-center space-y-8">
+        <div className="text-center space-y-8 pt-10">
           <div className="space-y-6">
             <div className="flex items-center justify-center space-x-4">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-600 rounded-3xl blur-2xl opacity-30"></div>
               </div>
               <h1 className="text-5xl font-bold gradient-text modern-text">
-                Same Chain Batch Transaction
+                Bundle Your Actions Together
               </h1>
             </div>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto modern-text leading-relaxed">
@@ -323,7 +323,7 @@ export default function BatchChainApp() {
         </div>
 
         {/* Payment Method Selection */}
-        <div className="max-w-4xl mx-auto">
+        <div className="">
           <HybridPaymentMethodSelector
             onPaymentMethodChange={setPaymentMethod}
             onSmartWalletReady={setIsSmartWalletReady}
@@ -380,8 +380,8 @@ export default function BatchChainApp() {
                     </div>
                     <div className="text-center space-y-2">
                       <div className="text-4xl font-bold text-orange-400 modern-text">
-                        {paymentMethod === 'rbtc' 
-                          ? `${totalAmount.toFixed(4)} rBTC` 
+                        {paymentMethod === 'rbtc'
+                          ? `${totalAmount.toFixed(4)} rBTC`
                           : `${getRequiredRifTokens(recipients.length)} RIF`
                         }
                       </div>
@@ -475,19 +475,7 @@ export default function BatchChainApp() {
           </div>
         )}
       </div>
-      {/* <DefiChatbot
-  onBatch={(parsedRecipients) => {
-    const formatted = parsedRecipients
-      .filter((r) => r.token.toLowerCase() === "trtbc")
-      .map((r) => ({
-        id: Date.now().toString() + Math.random().toString(36).substring(2),
-        address: r.address,
-        amount: r.amount,
-      }));
-    setRecipients(formatted);
-  }}
-/>; */}
-<DefiChatbot onBatchSubmit={handleSubmitParsedBatch} />
+      <FloatingChatbot onBatchSubmit={handleSubmitParsedBatch} />
 
     </div>
   );

@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { 
-  Zap, 
-  Wallet, 
-  CheckCircle, 
-  AlertCircle, 
-  Loader2, 
+import {
+  Zap,
+  Wallet,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
   Coins,
   Activity,
   ArrowRight
@@ -42,7 +42,7 @@ export default function HybridPaymentMethodSelector({
   const { data: walletClient } = useWalletClient();
   const [smartWallet, setSmartWallet] = useState<SmartWalletInfo | null>(null);
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
-  const [rifBalance, setRifBalance] = useState<bigint>(0n);
+  const [rifBalance, setRifBalance] = useState<bigint>(BigInt(0));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -95,14 +95,14 @@ export default function HybridPaymentMethodSelector({
     setError('');
 
     try {
-      const approveAmount = requiredRifAmount * 10n; // Approve 10x for multiple transactions
+      const approveAmount = requiredRifAmount * BigInt(10); // Approve 10x for multiple transactions
       await rifClient.approveTokens(address, approveAmount);
-      
+
       // Wait a moment for the transaction to be mined
       setTimeout(() => {
         loadRifData(); // Reload data after approval
       }, 2000);
-      
+
     } catch (err: any) {
       setError(err.message || 'Failed to approve tokens');
     } finally {
@@ -155,20 +155,18 @@ export default function HybridPaymentMethodSelector({
             <Button
               onClick={() => onPaymentMethodChange('rbtc')}
               variant={paymentMethod === 'rbtc' ? 'default' : 'outline'}
-              className={`h-16 flex flex-col space-y-1 ${
-                paymentMethod === 'rbtc' ? 'glass-button' : 'glass-card hover-lift'
-              }`}
+              className={`h-16 flex flex-col space-y-1 ${paymentMethod === 'rbtc' ? 'glass-button' : 'glass-card hover-lift'
+                }`}
             >
               <Wallet className="h-5 w-5" />
               <span className="text-sm">rBTC</span>
             </Button>
-            
+
             <Button
               onClick={() => onPaymentMethodChange('rif')}
               variant={paymentMethod === 'rif' ? 'default' : 'outline'}
-              className={`h-16 flex flex-col space-y-1 ${
-                paymentMethod === 'rif' ? 'glass-button' : 'glass-card hover-lift'
-              }`}
+              className={`h-16 flex flex-col space-y-1 ${paymentMethod === 'rif' ? 'glass-button' : 'glass-card hover-lift'
+                }`}
             >
               <Coins className="h-5 w-5" />
               <span className="text-sm">RIF</span>
@@ -235,7 +233,7 @@ export default function HybridPaymentMethodSelector({
               {!tokenStatus?.isApproved && (
                 <Button
                   onClick={handleApproveTokens}
-                  disabled={isLoading || tokenStatus?.balance < requiredRifAmount}
+                  disabled={isLoading || !tokenStatus?.balance || tokenStatus.balance < requiredRifAmount}
                   className="w-full glass-button hover-lift"
                 >
                   {isLoading ? (
@@ -247,7 +245,7 @@ export default function HybridPaymentMethodSelector({
                 </Button>
               )}
 
-              {tokenStatus?.balance < requiredRifAmount && (
+              {tokenStatus?.balance !== undefined && tokenStatus.balance < requiredRifAmount && (
                 <div className="text-center p-3 rounded-lg bg-red-500/10 border border-red-400/20">
                   <p className="text-sm text-red-400">
                     ⚠️ Insufficient RIF balance. You need at least {requiredRifTokens} RIF tokens.
