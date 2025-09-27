@@ -31,8 +31,8 @@ function HomePage() {
               </p>
               <p className="text-xl text-gray-300 max-w-3xl mx-auto modern-text leading-relaxed">
                 Efficiently manage multiple RBTC transactions in a single batch operation.
-                Save on gas fees and streamline your blockchain interactions with our
-                cutting-edge glassmorphism interface.
+                Pay gas fees with RIF tokens for gas-less transactions. Save on gas fees 
+                and streamline your blockchain interactions with our cutting-edge glassmorphism interface.
               </p>
             </div>
           </div>
@@ -67,11 +67,11 @@ function HomePage() {
           <Card className="glass-card hover-lift group">
             <CardHeader className="text-center space-y-4">
               <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <Shield className="h-8 w-8 text-blue-400" />
+                <Zap className="h-8 w-8 text-blue-400" />
               </div>
-              <CardTitle className="text-xl modern-text">Secure & Reliable</CardTitle>
+              <CardTitle className="text-xl modern-text">RIF Token Payments</CardTitle>
               <CardDescription className="text-gray-300 modern-text">
-                Built on RIF technology with enterprise-grade security and reliability for your transactions.
+                Pay gas fees with RIF tokens instead of rBTC for gas-less batch transactions.
               </CardDescription>
             </CardHeader>
           </Card>

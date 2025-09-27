@@ -4,24 +4,32 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import WalletConnect from './WalletConnect';
 import RecipientForm from './RecipientForm';
 import RecipientsTable from './RecipientsTable';
+import HybridPaymentMethodSelector, { PaymentMethod } from './HybridPaymentMethodSelector';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Send, RotateCcw, CheckCircle, Calculator, Users, Zap, ArrowRight } from 'lucide-react';
 import { Recipient } from '@/types';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useWalletClient } from 'wagmi';
 import { parseEther } from 'viem';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config/config';
+import { HybridRIFClient, type TokenStatus } from '../lib/hybrid-rif-client';
+import { getRequiredRifTokens } from '../config/rif-config';
 import DefiChatbot from "./ui/DefiChatbot";
 import { ParsedRecipient } from "./ui/DefiChatbot";
 
 // import { parseEther } from "viem"; // Keep for 18 decimals tokens
 
 export default function BatchChainApp() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('rbtc');
+  const [rifClient] = useState(() => new HybridRIFClient());
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
+  const [isSmartWalletReady, setIsSmartWalletReady] = useState(false);
 
 
 
@@ -73,14 +81,29 @@ export default function BatchChainApp() {
       }));
       setRecipients(formattedRecipients);
   
-      // Perform contract call
-      await writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "batchTransfer",
-        args: [recipientAddresses, recipientAmounts],
-        value: totalValue,
-      });
+      // Perform contract call based on payment method
+      if (paymentMethod === 'rbtc') {
+        await writeContract({
+          address: CONTRACT_ADDRESS,
+          abi: CONTRACT_ABI,
+          functionName: "batchTransfer",
+          args: [recipientAddresses, recipientAmounts],
+          value: totalValue,
+        });
+      } else if (paymentMethod === 'rif') {
+        if (!address) throw new Error('Wallet not connected');
+        if (!isSmartWalletReady) throw new Error('Smart wallet not ready for RIF payments');
+
+        const requiredRifTokens = getRequiredRifTokens(recipientsForToken.length);
+        const rifTokenAmount = BigInt(requiredRifTokens) * BigInt(10 ** 18);
+
+        await rifClient.batchTransfer(
+          address,
+          recipientAddresses,
+          recipientAmounts,
+          rifTokenAmount
+        );
+      }
     } catch (err: any) {
       setError(err.message || "Transaction failed");
       throw err;
@@ -92,7 +115,7 @@ export default function BatchChainApp() {
 
   // Calculate total amount
   const totalAmount = useMemo(() => {
-    return recipients.reduce((total, recipient) => {
+    return recipients.reduce((total: number, recipient: Recipient) => {
       const amount = parseFloat(recipient.amount) || 0;
       return total + amount;
     }, 0);
@@ -110,15 +133,15 @@ export default function BatchChainApp() {
   }, []);
 
   const handleUpdateRecipient = useCallback((id: string, address: string, amount: string) => {
-    setRecipients(prev =>
-      prev.map(recipient =>
+    setRecipients((prev: Recipient[]) =>
+      prev.map((recipient: Recipient) =>
         recipient.id === id ? { ...recipient, address, amount } : recipient
       )
     );
   }, []);
 
   const handleDeleteRecipient = useCallback((id: string) => {
-    setRecipients(prev => prev.filter(recipient => recipient.id !== id));
+    setRecipients((prev: Recipient[]) => prev.filter((recipient: Recipient) => recipient.id !== id));
   }, []);
 
   const { writeContract, data: txHash, error: contractError, isPending } = useWriteContract();
@@ -132,31 +155,58 @@ export default function BatchChainApp() {
     }
   }, [isSuccess, txHash]);
 
+  // Initialize RIF client when wallet is connected
+  useEffect(() => {
+    if (walletClient && address) {
+      rifClient.setWalletClient(walletClient, address);
+    }
+  }, [walletClient, address, rifClient]);
+
   const handleSubmit = async () => {
     if (recipients.length === 0) return;
 
     setIsSubmitting(true);
+    setError("");
 
     try {
-      const recipientAddresses = recipients.map(r => r.address);
-      const recipientAmounts = recipients.map(r => BigInt(parseEther(r.amount)));
-      const totalValue = recipientAmounts.reduce((acc, val) => acc + val, BigInt(0));
+      const recipientAddresses = recipients.map((r: Recipient) => r.address);
+      const recipientAmounts = recipients.map((r: Recipient) => BigInt(parseEther(r.amount)));
+      const totalValue = recipientAmounts.reduce((acc: bigint, val: bigint) => acc + val, BigInt(0));
 
       console.log('Submitting batchTransfer with:', {
         recipientAddresses,
         recipientAmounts,
         totalValue: totalValue.toString(),
+        paymentMethod,
       });
 
-      await writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'batchTransfer',
-        args: [recipientAddresses, recipientAmounts],
-        value: totalValue,
-      });
-    } catch (err) {
+      if (paymentMethod === 'rbtc') {
+        // Traditional rBTC payment
+        await writeContract({
+          address: CONTRACT_ADDRESS,
+          abi: CONTRACT_ABI,
+          functionName: 'batchTransfer',
+          args: [recipientAddresses, recipientAmounts],
+          value: totalValue,
+        });
+      } else if (paymentMethod === 'rif') {
+        // RIF Relay payment
+        if (!address) throw new Error('Wallet not connected');
+        if (!isSmartWalletReady) throw new Error('Smart wallet not ready for RIF payments');
+
+        const requiredRifTokens = getRequiredRifTokens(recipients.length);
+        const rifTokenAmount = BigInt(requiredRifTokens) * BigInt(10 ** 18); // Convert to wei
+
+        await rifClient.batchTransfer(
+          address,
+          recipientAddresses,
+          recipientAmounts,
+          rifTokenAmount
+        );
+      }
+    } catch (err: any) {
       console.error('Submission failed:', err);
+      setError(err.message || 'Transaction failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -272,6 +322,18 @@ export default function BatchChainApp() {
           </div>
         </div>
 
+        {/* Payment Method Selection */}
+        <div className="max-w-4xl mx-auto">
+          <HybridPaymentMethodSelector
+            onPaymentMethodChange={setPaymentMethod}
+            onSmartWalletReady={setIsSmartWalletReady}
+            onTokenStatusChange={setTokenStatus}
+            rifClient={rifClient}
+            batchSize={recipients.length}
+            paymentMethod={paymentMethod}
+          />
+        </div>
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Form Section */}
@@ -317,8 +379,45 @@ export default function BatchChainApp() {
                       <div className="text-sm text-gray-400 modern-text">Recipients</div>
                     </div>
                     <div className="text-center space-y-2">
-                      <div className="text-4xl font-bold text-orange-400 modern-text">{totalAmount.toFixed(4)} RBTC</div>
-                      <div className="text-sm text-gray-400 modern-text">Total Amount</div>
+                      <div className="text-4xl font-bold text-orange-400 modern-text">
+                        {paymentMethod === 'rbtc' 
+                          ? `${totalAmount.toFixed(4)} rBTC` 
+                          : `${getRequiredRifTokens(recipients.length)} RIF`
+                        }
+                      </div>
+                      <div className="text-sm text-gray-400 modern-text">
+                        {paymentMethod === 'rbtc' ? 'Total Amount' : 'Gas Cost'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Method Info */}
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="flex items-center justify-center space-x-2">
+                      {paymentMethod === 'rbtc' ? (
+                        <>
+                          <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
+                            <span className="text-orange-400 text-xs">₿</span>
+                          </div>
+                          <span className="text-sm text-gray-300">
+                            Paying with rBTC - Traditional gas payment
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                            <Zap className="h-3 w-3 text-blue-400" />
+                          </div>
+                          <span className="text-sm text-gray-300">
+                            Paying with RIF - Gas-less transaction
+                          </span>
+                          {!isSmartWalletReady && (
+                            <span className="text-xs text-yellow-400 ml-2">
+                              (Smart wallet not ready)
+                            </span>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -326,7 +425,7 @@ export default function BatchChainApp() {
                   <div className="flex flex-col sm:flex-row gap-6 justify-center">
                     <Button
                       onClick={handleSubmit}
-                      disabled={isSubmitting || isPending}
+                      disabled={isSubmitting || isPending || (paymentMethod === 'rif' && !isSmartWalletReady)}
                       className="glass-button hover-lift hover-glow min-w-[200px] h-14 text-lg modern-text"
                     >
                       {isSubmitting || isPending ? (
@@ -337,7 +436,7 @@ export default function BatchChainApp() {
                       ) : (
                         <>
                           <Send className="mr-3 h-6 w-6" />
-                          Submit Batch
+                          {paymentMethod === 'rif' ? 'Submit with RIF' : 'Submit Batch'}
                           <ArrowRight className="ml-3 h-5 w-5" />
                         </>
                       )}
@@ -354,10 +453,16 @@ export default function BatchChainApp() {
                   </div>
 
                   {/* Error message */}
-                  {contractError && (
+                  {(contractError || error) && (
                     <div className="mt-2 text-red-500 text-sm">
-                      {/* Error: {(contractError as Error).message}
-                       */} Error Ocurred, Please Try Again!!
+                      {error || 'Error occurred, please try again!'}
+                    </div>
+                  )}
+
+                  {/* RIF Payment Status */}
+                  {paymentMethod === 'rif' && !isSmartWalletReady && (
+                    <div className="mt-2 text-yellow-500 text-sm text-center">
+                      Smart wallet not ready. Please deploy and approve tokens first.
                     </div>
                   )}
 
