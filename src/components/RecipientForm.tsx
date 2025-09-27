@@ -65,7 +65,7 @@ export default function RecipientForm({ onAddRecipient, isSubmitting = false }: 
   return (
     <Card className="w-full glass-card glow-border">
       <CardHeader>
-        <CardTitle className="glow-text flex items-center gap-2">
+        <CardTitle className="text-orange-400 flex items-center gap-2">
           <Plus className="h-5 w-5" />
           Add Recipient
         </CardTitle>
@@ -97,7 +97,7 @@ export default function RecipientForm({ onAddRecipient, isSubmitting = false }: 
           <div className="space-y-2">
             <label htmlFor="amount" className="text-sm font-medium text-orange-400 flex items-center gap-2">
               <Coins className="h-4 w-4" />
-              Amount (ETH)
+              Amount (trBTC)
             </label>
             <Input
               id="amount"
@@ -116,7 +116,7 @@ export default function RecipientForm({ onAddRecipient, isSubmitting = false }: 
 
           <Button
             type="submit"
-            className="w-full glass-button hover-lift hover-glow"
+            className="w-full glass-button hover-glow"
             disabled={isSubmitting}
           >
             <Plus className="mr-2 h-4 w-4" />

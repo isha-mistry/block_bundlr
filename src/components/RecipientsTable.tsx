@@ -63,7 +63,7 @@ export default function RecipientsTable({
           <div className="mx-auto mb-4 p-3 rounded-full bg-orange-500/20 border border-orange-400/30 w-fit">
             <Users className="h-8 w-8 text-orange-400" />
           </div>
-          <CardTitle className="glow-text">No Recipients Added</CardTitle>
+          <CardTitle className="text-orange-400">No Recipients Added</CardTitle>
           <CardDescription className="text-gray-300">
             Add recipients using the form above to see them listed here
           </CardDescription>
@@ -75,7 +75,7 @@ export default function RecipientsTable({
   return (
     <Card className="w-full max-w-4xl mx-auto glass-card glow-border">
       <CardHeader>
-        <CardTitle className="glow-text flex items-center gap-2">
+        <CardTitle className="text-orange-400 flex items-center gap-2">
           <Users className="h-5 w-5" />
           Recipients ({recipients.length})
         </CardTitle>
@@ -89,7 +89,7 @@ export default function RecipientsTable({
             <TableHeader>
               <TableRow className="border-white/10">
                 <TableHead className="text-orange-400">Address</TableHead>
-                <TableHead className="text-orange-400">Amount (ETH)</TableHead>
+                <TableHead className="text-orange-400">Amount (RBTC)</TableHead>
                 <TableHead className="text-orange-400 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>

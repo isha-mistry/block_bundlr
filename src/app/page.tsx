@@ -1,5 +1,5 @@
-import BatchChainApp from '@/components/BatchChainApp';
+import HomePage from '@/components/HomePage';
 
 export default function Home() {
-  return <BatchChainApp />;
+  return <HomePage />;
 }

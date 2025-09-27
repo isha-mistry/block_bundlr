@@ -211,7 +211,7 @@ export default function BatchChainApp() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center p-4 rounded-lg bg-green-500/10 border border-green-400/20">
+            <div className="text-center p-4 rounded-xl bg-green-500/10 border border-green-400/20">
               <p className="text-sm text-green-300">
                 You can view the transaction status in your wallet or on the blockchain explorer.
               </p>
@@ -230,44 +230,50 @@ export default function BatchChainApp() {
   }
 
   return (
-    <div className="min-h-screen p-4 pt-20">
+    <div className="min-h-screen p-4 pt-24 pb-16">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
-        <div className="text-center space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-center space-x-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/25">
-                <Zap className="h-6 w-6 text-white" />
+        <div className="text-center space-y-8">
+          <div className="space-y-6">
+            <div className="flex items-center justify-center space-x-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-orange-600 rounded-3xl blur-2xl opacity-30"></div>
               </div>
-              <h1 className="text-4xl font-bold glow-text">Same Chain Batch Transaction</h1>
+              <h1 className="text-5xl font-bold gradient-text modern-text">
+                Same Chain Batch Transaction
+              </h1>
             </div>
-            <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-              Efficiently send multiple transactions to different addresses in a single batch operation
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto modern-text leading-relaxed">
+              Efficiently send multiple RBTC transactions to different addresses in a single batch operation
             </p>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Users className="h-8 w-8 text-orange-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{recipients.length}</div>
-                <div className="text-sm text-gray-400">Recipients</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="glass-card hover-lift group">
+              <CardContent className="p-6 text-center">
+                <div className="mx-auto w-16 h-16 rounded-3xl bg-gradient-to-br from-orange-500/20 to-orange-600/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
+                  <Users className="h-8 w-8 text-orange-400" />
+                </div>
+                <div className="text-3xl font-bold text-white modern-text">{recipients.length}</div>
+                <div className="text-sm text-gray-400 modern-text">Recipients</div>
               </CardContent>
             </Card>
 
-            <Card className="glass-card hover-lift">
-              <CardContent className="p-4 text-center">
-                <Calculator className="h-8 w-8 text-orange-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{totalAmount.toFixed(4)}</div>
-                <div className="text-sm text-gray-400">Total ETH</div>
+            <Card className="glass-card hover-lift group">
+              <CardContent className="p-6 text-center">
+                <div className="mx-auto w-16 h-16 rounded-3xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
+                  <Calculator className="h-8 w-8 text-blue-400" />
+                </div>
+                <div className="text-3xl font-bold text-white modern-text">{totalAmount.toFixed(4)}</div>
+                <div className="text-sm text-gray-400 modern-text">Total RBTC</div>
               </CardContent>
             </Card>
           </div>
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Form Section */}
           <div className="space-y-6">
             <RecipientForm onAddRecipient={handleAddRecipient} isSubmitting={isSubmitting} />
@@ -287,48 +293,62 @@ export default function BatchChainApp() {
         {/* Submit Section */}
         {recipients.length > 0 && (
           <div className="flex justify-center">
-            <Card className="glass-card glow-border hover-lift max-w-2xl w-full">
-              <CardContent className="p-8">
-                <div className="text-center space-y-6">
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-semibold text-orange-400">Ready to Submit Batch Transaction</h3>
-                    <p className="text-gray-300">Review your transaction details before submitting</p>
+            <Card className="glass-card-premium glow-border hover-lift max-w-3xl w-full">
+              <CardContent className="p-10">
+                <div className="text-center space-y-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center space-x-3">
+                      <div className="w-12 h-12 rounded-3xl bg-gradient-to-br from-orange-500/20 to-orange-600/20 flex items-center justify-center">
+                        <Send className="h-6 w-6 text-orange-400" />
+                      </div>
+                      <h3 className="text-3xl font-bold text-orange-400 modern-text">
+                        Ready to Submit Batch Transaction
+                      </h3>
+                    </div>
+                    <p className="text-gray-300 text-lg modern-text">
+                      Review your transaction details before submitting to the network
+                    </p>
                   </div>
 
                   {/* Transaction Summary */}
-                  <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-white/5 border border-white/10">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">{recipients.length}</div>
-                      <div className="text-sm text-gray-400">Recipients</div>
+                  <div className="grid grid-cols-2 gap-6 p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <div className="text-center space-y-2">
+                      <div className="text-4xl font-bold text-white modern-text">{recipients.length}</div>
+                      <div className="text-sm text-gray-400 modern-text">Recipients</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-400">{totalAmount.toFixed(4)} ETH</div>
-                      <div className="text-sm text-gray-400">Total Amount</div>
+                    <div className="text-center space-y-2">
+                      <div className="text-4xl font-bold text-orange-400 modern-text">{totalAmount.toFixed(4)} RBTC</div>
+                      <div className="text-sm text-gray-400 modern-text">Total Amount</div>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-6 justify-center">
                     <Button
                       onClick={handleSubmit}
                       disabled={isSubmitting || isPending}
-                      className="glass-button hover-lift hover-glow min-w-[160px] h-12"
+                      className="glass-button hover-lift hover-glow min-w-[200px] h-14 text-lg modern-text"
                     >
                       {isSubmitting || isPending ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                           Submitting...
                         </>
                       ) : (
                         <>
-                          <Send className="mr-2 h-5 w-5" />
+                          <Send className="mr-3 h-6 w-6" />
                           Submit Batch
-                          <ArrowRight className="ml-2 h-4 w-4" />
+                          <ArrowRight className="ml-3 h-5 w-5" />
                         </>
                       )}
                     </Button>
-                    <Button onClick={handleReset} disabled={isSubmitting || isPending} className="min-w-[160px] h-12 glass-button">
-                      <RotateCcw className="mr-2 h-4 w-4" />
+                    <Button
+                      onClick={handleReset}
+                      variant="outline"
+                      disabled={isSubmitting || isPending}
+                      className="min-w-[200px] h-14 text-lg glass-card hover-lift modern-text"
+                    >
+                      <RotateCcw className="mr-3 h-5 w-5" />
                       Reset All
                     </Button>
                   </div>
