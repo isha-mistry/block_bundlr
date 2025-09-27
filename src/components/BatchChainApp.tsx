@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
-import { useAccount } from 'wagmi';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import WalletConnect from './WalletConnect';
 import RecipientForm from './RecipientForm';
 import RecipientsTable from './RecipientsTable';
@@ -9,9 +8,12 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Send, RotateCcw, CheckCircle, Calculator, Users, Zap, ArrowRight } from 'lucide-react';
 import { Recipient } from '@/types';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther } from 'viem';
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config/config';
 
 export default function BatchChainApp() {
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -36,9 +38,7 @@ export default function BatchChainApp() {
   const handleUpdateRecipient = useCallback((id: string, address: string, amount: string) => {
     setRecipients(prev =>
       prev.map(recipient =>
-        recipient.id === id
-          ? { ...recipient, address, amount }
-          : recipient
+        recipient.id === id ? { ...recipient, address, amount } : recipient
       )
     );
   }, []);
@@ -47,23 +47,42 @@ export default function BatchChainApp() {
     setRecipients(prev => prev.filter(recipient => recipient.id !== id));
   }, []);
 
+  const { writeContract, data: txHash, error, isPending } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+
+  useEffect(() => {
+    if (isSuccess && txHash) {
+      console.log('Transaction confirmed, hash:', txHash);
+      setIsSubmitted(true);
+    }
+  }, [isSuccess, txHash]);
+
   const handleSubmit = async () => {
     if (recipients.length === 0) return;
 
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const recipientAddresses = recipients.map(r => r.address);
+      const recipientAmounts = recipients.map(r => BigInt(parseEther(r.amount)));
+      const totalValue = recipientAmounts.reduce((acc, val) => acc + val, BigInt(0));
 
-      // Reset form and show success
-      setRecipients([]);
-      setIsSubmitted(true);
+      console.log('Submitting batchTransfer with:', {
+        recipientAddresses,
+        recipientAmounts,
+        totalValue: totalValue.toString(),
+      });
 
-      // Hide success message after 3 seconds
-      setTimeout(() => setIsSubmitted(false), 3000);
-    } catch (error) {
-      console.error('Submission failed:', error);
+      await writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'batchTransfer',
+        args: [recipientAddresses, recipientAmounts],
+        value: totalValue,
+      });
+    } catch (err) {
+      console.error('Submission failed:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -118,7 +137,7 @@ export default function BatchChainApp() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center p-4 rounded-lg bg-green-500/10 border border-green-400/20">
+            <div className="text-center p-4 rounded-xl bg-green-500/10 border border-green-400/20">
               <p className="text-sm text-green-300">
                 You can view the transaction status in your wallet or on the blockchain explorer.
               </p>
@@ -183,10 +202,7 @@ export default function BatchChainApp() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Form Section */}
           <div className="space-y-6">
-            <RecipientForm
-              onAddRecipient={handleAddRecipient}
-              isSubmitting={isSubmitting}
-            />
+            <RecipientForm onAddRecipient={handleAddRecipient} isSubmitting={isSubmitting} />
           </div>
 
           {/* Table Section */}
@@ -236,10 +252,10 @@ export default function BatchChainApp() {
                   <div className="flex flex-col sm:flex-row gap-6 justify-center">
                     <Button
                       onClick={handleSubmit}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isPending}
                       className="glass-button hover-lift hover-glow min-w-[200px] h-14 text-lg modern-text"
                     >
-                      {isSubmitting ? (
+                      {isSubmitting || isPending ? (
                         <>
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                           Submitting...
@@ -255,7 +271,7 @@ export default function BatchChainApp() {
                     <Button
                       onClick={handleReset}
                       variant="outline"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isPending}
                       className="min-w-[200px] h-14 text-lg glass-card hover-lift modern-text"
                     >
                       <RotateCcw className="mr-3 h-5 w-5" />
@@ -263,8 +279,15 @@ export default function BatchChainApp() {
                     </Button>
                   </div>
 
-                  <div className="text-sm text-gray-400 text-center modern-text">
-                    <p>This will create a single transaction that sends RBTC to all recipients</p>
+                  {/* Error message */}
+                  {error && (
+                    <div className="mt-2 text-red-500 text-sm">
+                      Error: {(error as Error).message}
+                    </div>
+                  )}
+
+                  <div className="text-xs text-gray-400 text-center">
+                    <p>This will create a single transaction that sends to all recipients</p>
                   </div>
                 </div>
               </CardContent>
@@ -275,4 +298,3 @@ export default function BatchChainApp() {
     </div>
   );
 }
-

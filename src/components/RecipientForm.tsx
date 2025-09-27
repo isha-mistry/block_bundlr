@@ -116,7 +116,7 @@ export default function RecipientForm({ onAddRecipient, isSubmitting = false }: 
 
           <Button
             type="submit"
-            className="w-full glass-button hover-lift hover-glow"
+            className="w-full glass-button hover-glow"
             disabled={isSubmitting}
           >
             <Plus className="mr-2 h-4 w-4" />

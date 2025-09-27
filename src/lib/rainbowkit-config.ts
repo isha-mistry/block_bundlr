@@ -1,5 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { rootstockTestnet } from "wagmi/chains";
+import { rootstockTestnet } from "viem/chains";
 
 export const config = getDefaultConfig({
   appName: "Batch Chain",

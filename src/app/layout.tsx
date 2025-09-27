@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BlockBundlR - Same Chain Batch Transaction Manager",
+  title: "BlockBundlR",
   description: "A modern Web3 application for managing batch transactions efficiently on the same chain with glassmorphism design",
   keywords: ["Web3", "Ethereum", "Batch Transactions", "Wallet", "DeFi", "BlockBundlR"],
   authors: [{ name: "BlockBundlR Team" }],
