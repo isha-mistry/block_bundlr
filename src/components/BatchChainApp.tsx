@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
-import { useAccount } from 'wagmi';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import WalletConnect from './WalletConnect';
 import RecipientForm from './RecipientForm';
 import RecipientsTable from './RecipientsTable';
@@ -9,9 +8,12 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Send, RotateCcw, CheckCircle, Calculator, Users, Zap, ArrowRight } from 'lucide-react';
 import { Recipient } from '@/types';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther } from 'viem';
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config/config';
 
 export default function BatchChainApp() {
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -36,9 +38,7 @@ export default function BatchChainApp() {
   const handleUpdateRecipient = useCallback((id: string, address: string, amount: string) => {
     setRecipients(prev =>
       prev.map(recipient =>
-        recipient.id === id
-          ? { ...recipient, address, amount }
-          : recipient
+        recipient.id === id ? { ...recipient, address, amount } : recipient
       )
     );
   }, []);
@@ -47,23 +47,42 @@ export default function BatchChainApp() {
     setRecipients(prev => prev.filter(recipient => recipient.id !== id));
   }, []);
 
+  const { writeContract, data: txHash, error, isPending } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+
+  useEffect(() => {
+    if (isSuccess && txHash) {
+      console.log('Transaction confirmed, hash:', txHash);
+      setIsSubmitted(true);
+    }
+  }, [isSuccess, txHash]);
+
   const handleSubmit = async () => {
     if (recipients.length === 0) return;
 
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const recipientAddresses = recipients.map(r => r.address);
+      const recipientAmounts = recipients.map(r => BigInt(parseEther(r.amount)));
+      const totalValue = recipientAmounts.reduce((acc, val) => acc + val, BigInt(0));
 
-      // Reset form and show success
-      setRecipients([]);
-      setIsSubmitted(true);
+      console.log('Submitting batchTransfer with:', {
+        recipientAddresses,
+        recipientAmounts,
+        totalValue: totalValue.toString(),
+      });
 
-      // Hide success message after 3 seconds
-      setTimeout(() => setIsSubmitted(false), 3000);
-    } catch (error) {
-      console.error('Submission failed:', error);
+      await writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'batchTransfer',
+        args: [recipientAddresses, recipientAmounts],
+        value: totalValue,
+      });
+    } catch (err) {
+      console.error('Submission failed:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -146,9 +165,7 @@ export default function BatchChainApp() {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/25">
                 <Zap className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-4xl font-bold glow-text">
-                Same Chain Batch Transaction
-              </h1>
+              <h1 className="text-4xl font-bold glow-text">Same Chain Batch Transaction</h1>
             </div>
             <p className="text-gray-300 text-lg max-w-2xl mx-auto">
               Efficiently send multiple transactions to different addresses in a single batch operation
@@ -157,7 +174,7 @@ export default function BatchChainApp() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="">
+            <Card>
               <CardContent className="p-4 text-center">
                 <Users className="h-8 w-8 text-orange-400 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">{recipients.length}</div>
@@ -172,14 +189,6 @@ export default function BatchChainApp() {
                 <div className="text-sm text-gray-400">Total ETH</div>
               </CardContent>
             </Card>
-
-            {/* <Card className="glass-card hover-lift">
-              <CardContent className="p-4 text-center">
-                <Zap className="h-8 w-8 text-orange-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">1</div>
-                <div className="text-sm text-gray-400">Transaction</div>
-              </CardContent>
-            </Card> */}
           </div>
         </div>
 
@@ -187,10 +196,7 @@ export default function BatchChainApp() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {/* Form Section */}
           <div className="space-y-6">
-            <RecipientForm
-              onAddRecipient={handleAddRecipient}
-              isSubmitting={isSubmitting}
-            />
+            <RecipientForm onAddRecipient={handleAddRecipient} isSubmitting={isSubmitting} />
           </div>
 
           {/* Table Section */}
@@ -211,12 +217,8 @@ export default function BatchChainApp() {
               <CardContent className="p-8">
                 <div className="text-center space-y-6">
                   <div className="space-y-2">
-                    <h3 className="text-xl font-semibold text-orange-400">
-                      Ready to Submit Batch Transaction
-                    </h3>
-                    <p className="text-gray-300">
-                      Review your transaction details before submitting
-                    </p>
+                    <h3 className="text-xl font-semibold text-orange-400">Ready to Submit Batch Transaction</h3>
+                    <p className="text-gray-300">Review your transaction details before submitting</p>
                   </div>
 
                   {/* Transaction Summary */}
@@ -235,10 +237,10 @@ export default function BatchChainApp() {
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button
                       onClick={handleSubmit}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isPending}
                       className="glass-button hover-lift hover-glow min-w-[160px] h-12"
                     >
-                      {isSubmitting ? (
+                      {isSubmitting || isPending ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                           Submitting...
@@ -251,16 +253,18 @@ export default function BatchChainApp() {
                         </>
                       )}
                     </Button>
-                    <Button
-                      onClick={handleReset}
-                      variant="outline"
-                      disabled={isSubmitting}
-                      className="min-w-[160px] h-12 glass-button"
-                    >
+                    <Button onClick={handleReset} disabled={isSubmitting || isPending} className="min-w-[160px] h-12 glass-button">
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Reset All
                     </Button>
                   </div>
+
+                  {/* Error message */}
+                  {error && (
+                    <div className="mt-2 text-red-500 text-sm">
+                      Error: {(error as Error).message}
+                    </div>
+                  )}
 
                   <div className="text-xs text-gray-400 text-center">
                     <p>This will create a single transaction that sends to all recipients</p>
@@ -274,4 +278,3 @@ export default function BatchChainApp() {
     </div>
   );
 }
-
