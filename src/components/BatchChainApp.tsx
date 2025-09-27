@@ -11,12 +11,84 @@ import { Recipient } from '@/types';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config/config';
+import DefiChatbot from "./ui/DefiChatbot";
+import { ParsedRecipient } from "./ui/DefiChatbot";
+
+// import { parseEther } from "viem"; // Keep for 18 decimals tokens
 
 export default function BatchChainApp() {
   const { isConnected } = useAccount();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string>("");
+
+
+
+  // Define decimals for tokens you use
+  const tokenDecimalsMap: Record<string, number> = {
+    trtbc: 18,
+    trbtc: 18, // Replace with actual decimal count of tRBTC token
+  };
+  
+  // Helper function to parse amount string into bigint based on decimals
+  function parseAmount(amountStr: string, decimals: number): bigint {
+    // Split integer and fractional part
+    const [whole, fraction = ""] = amountStr.split(".");
+    // Right pad fractional part to token decimals
+    const fractionPadded = (fraction + "0".repeat(decimals)).slice(0, decimals);
+    const wholePart = BigInt(whole) * BigInt(10) ** BigInt(decimals);
+    const fractionPart = BigInt(fractionPadded);
+    return wholePart + fractionPart;
+  }
+  
+  const handleSubmitParsedBatch = async (parsedRecipients: ParsedRecipient[]) => {
+    if (parsedRecipients.length === 0) return;
+  
+    setIsSubmitting(true);
+    setError("");
+  
+    try {
+      // Filter batch by single token or pass all - depending on your contract logic
+      const filtered = parsedRecipients.filter(r => tokenDecimalsMap[r.token.toLowerCase()] !== undefined);
+  
+      // Separate by token if your contract supports only one token per call; here assume one token per batch call
+      // For example, handle only 'trbtc':
+      const tokenToSend = "trbtc";
+      const recipientsForToken = filtered.filter(r => r.token.toLowerCase() === tokenToSend);
+      if (recipientsForToken.length === 0) {
+        throw new Error(`No recipients with token ${tokenToSend} found`);
+      }
+  
+      const decimals = tokenDecimalsMap[tokenToSend];
+      const recipientAddresses = recipientsForToken.map(r => r.address);
+      const recipientAmounts = recipientsForToken.map(r => parseAmount(r.amount, decimals));
+      const totalValue = recipientAmounts.reduce((acc, val) => acc + val, BigInt(0));
+  
+      // Set recipients for UI display
+      const formattedRecipients = recipientsForToken.map(r => ({
+        id: Date.now().toString() + Math.random().toString(36).substring(2),
+        address: r.address,
+        amount: r.amount,
+      }));
+      setRecipients(formattedRecipients);
+  
+      // Perform contract call
+      await writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "batchTransfer",
+        args: [recipientAddresses, recipientAmounts],
+        value: totalValue,
+      });
+    } catch (err: any) {
+      setError(err.message || "Transaction failed");
+      throw err;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
 
   // Calculate total amount
   const totalAmount = useMemo(() => {
@@ -25,6 +97,8 @@ export default function BatchChainApp() {
       return total + amount;
     }, 0);
   }, [recipients]);
+
+  
 
   const handleAddRecipient = useCallback((recipient: { address: string; amount: string }) => {
     const newRecipient: Recipient = {
@@ -47,7 +121,7 @@ export default function BatchChainApp() {
     setRecipients(prev => prev.filter(recipient => recipient.id !== id));
   }, []);
 
-  const { writeContract, data: txHash, error, isPending } = useWriteContract();
+  const { writeContract, data: txHash, error: contractError, isPending } = useWriteContract();
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -260,9 +334,10 @@ export default function BatchChainApp() {
                   </div>
 
                   {/* Error message */}
-                  {error && (
+                  {contractError && (
                     <div className="mt-2 text-red-500 text-sm">
-                      Error: {(error as Error).message}
+                      {/* Error: {(contractError as Error).message}
+                       */} Error Ocurred, Please Try Again!!
                     </div>
                   )}
 
@@ -275,6 +350,20 @@ export default function BatchChainApp() {
           </div>
         )}
       </div>
+      {/* <DefiChatbot
+  onBatch={(parsedRecipients) => {
+    const formatted = parsedRecipients
+      .filter((r) => r.token.toLowerCase() === "trtbc")
+      .map((r) => ({
+        id: Date.now().toString() + Math.random().toString(36).substring(2),
+        address: r.address,
+        amount: r.amount,
+      }));
+    setRecipients(formatted);
+  }}
+/>; */}
+<DefiChatbot onBatchSubmit={handleSubmitParsedBatch} />
+
     </div>
   );
 }
