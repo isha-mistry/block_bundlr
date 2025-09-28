@@ -51,6 +51,10 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      fontFamily: {
+        greatVibes: ["var(--font-great-vibes)"],
+        nunito: ["var(--font-nunito)"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

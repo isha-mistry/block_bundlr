@@ -18,8 +18,8 @@ function HomePage() {
             <div className="space-y-8 mb-12">
               {/* Tagline in Great Vibes Font */}
               <div className="relative">
-                <p className="text-3xl md:text-4xl lg:text-5xl text-orange-300/90 font-[var(--font-great-vibes)] leading-relaxed">
-                  Bundle Your Dreams Together
+                <p className="italic text-3xl md:text-4xl lg:text-5xl text-orange-300/90 font-[var(--font-great-vibes)] leading-relaxed">
+                  Batch RBTC. Powered by RIF
                 </p>
               </div>
             </div>
