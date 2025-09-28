@@ -46,8 +46,29 @@ export default function HybridPaymentMethodSelector({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
-  const requiredRifTokens = getRequiredRifTokens(batchSize);
-  const requiredRifAmount = parseEther(requiredRifTokens.toString());
+  const requiredRifAmount = getRequiredRifTokens(batchSize); // Already in wei
+  
+  // Helper function to format BigInt to decimal with specified decimal places
+  const formatRifAmount = (weiAmount: bigint, decimals: number = 4): string => {
+    const divisor = BigInt(10 ** 18);
+    const wholePart = weiAmount / divisor;
+    const remainder = weiAmount % divisor;
+    
+    // Convert remainder to decimal string with proper padding
+    const remainderStr = remainder.toString().padStart(18, '0');
+    const decimalPart = remainderStr.slice(0, decimals);
+    
+    // Remove trailing zeros
+    const trimmedDecimal = decimalPart.replace(/0+$/, '');
+    
+    if (trimmedDecimal === '') {
+      return wholePart.toString();
+    }
+    
+    return `${wholePart.toString()}.${trimmedDecimal}`;
+  };
+  
+  const requiredRifTokens = formatRifAmount(requiredRifAmount, 4); // Convert to display format
 
   useEffect(() => {
     if (address && walletClient) {

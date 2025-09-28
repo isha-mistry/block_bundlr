@@ -163,20 +163,20 @@ export const BATCH_TRANSACTION_VERIFIER_ABI = [
   }
 ] as const;
 
-// Gas cost tiers for different batch sizes
+// Gas cost tiers for different batch sizes (in wei - 18 decimals)
 export const GAS_COST_TIERS = {
-  1: 0.1,    // 0.1 RIF for 1 transaction
-  2: 0.2,    // 0.2 RIF for 2-5 transactions
-  5: 0.2,
-  6: 0.3,    // 0.3 RIF for 6-10 transactions
-  10: 0.3,
-  11: 0.5,   // 0.5 RIF for 11-25 transactions
-  25: 0.5,
-  26: 0.8,   // 0.8 RIF for 26-50 transactions
-  50: 0.8,
+  1: 100000000000000000n,    // 0.1 RIF for 1 transaction (0.1 * 10^18)
+  2: 200000000000000000n,    // 0.2 RIF for 2-5 transactions (0.2 * 10^18)
+  5: 200000000000000000n,
+  6: 300000000000000000n,    // 0.3 RIF for 6-10 transactions (0.3 * 10^18)
+  10: 300000000000000000n,
+  11: 500000000000000000n,   // 0.5 RIF for 11-25 transactions (0.5 * 10^18)
+  25: 500000000000000000n,
+  26: 800000000000000000n,   // 0.8 RIF for 26-50 transactions (0.8 * 10^18)
+  50: 800000000000000000n,
 } as const;
 
-export function getRequiredRifTokens(batchSize: number): number {
+export function getRequiredRifTokens(batchSize: number): bigint {
   if (batchSize <= 1) return GAS_COST_TIERS[1];
   if (batchSize <= 5) return GAS_COST_TIERS[2];
   if (batchSize <= 10) return GAS_COST_TIERS[6];

@@ -19,6 +19,26 @@ import { ParsedRecipient } from "./ui/DefiChatbot";
 
 // import { parseEther } from "viem"; // Keep for 18 decimals tokens
 
+// Helper function to format BigInt to decimal with specified decimal places
+function formatRifAmount(weiAmount: bigint, decimals: number = 4): string {
+  const divisor = BigInt(10 ** 18);
+  const wholePart = weiAmount / divisor;
+  const remainder = weiAmount % divisor;
+  
+  // Convert remainder to decimal string with proper padding
+  const remainderStr = remainder.toString().padStart(18, '0');
+  const decimalPart = remainderStr.slice(0, decimals);
+  
+  // Remove trailing zeros
+  const trimmedDecimal = decimalPart.replace(/0+$/, '');
+  
+  if (trimmedDecimal === '') {
+    return wholePart.toString();
+  }
+  
+  return `${wholePart.toString()}.${trimmedDecimal}`;
+}
+
 export default function BatchChainApp() {
   const { isConnected, address } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -194,8 +214,7 @@ export default function BatchChainApp() {
         if (!address) throw new Error('Wallet not connected');
         if (!isSmartWalletReady) throw new Error('Smart wallet not ready for RIF payments');
 
-        const requiredRifTokens = getRequiredRifTokens(recipients.length);
-        const rifTokenAmount = BigInt(requiredRifTokens) * BigInt(10 ** 18); // Convert to wei
+        const rifTokenAmount = getRequiredRifTokens(recipients.length); // Already in wei
 
         await rifClient.batchTransfer(
           address,
@@ -355,7 +374,7 @@ export default function BatchChainApp() {
         {/* Submit Section */}
         {recipients.length > 0 && (
           <div className="flex justify-center">
-            <Card className="glass-card-premium glow-border hover-lift max-w-3xl w-full">
+            <Card className="glass-card-premium glow-border hover-lift w-full">
               <CardContent className="p-10">
                 <div className="text-center space-y-8">
                   <div className="space-y-4">
@@ -382,7 +401,7 @@ export default function BatchChainApp() {
                       <div className="text-4xl font-bold text-orange-400 modern-text">
                         {paymentMethod === 'rbtc'
                           ? `${totalAmount.toFixed(4)} rBTC`
-                          : `${getRequiredRifTokens(recipients.length)} RIF`
+                          : `${formatRifAmount(getRequiredRifTokens(recipients.length), 4)} RIF`
                         }
                       </div>
                       <div className="text-sm text-gray-400 modern-text">

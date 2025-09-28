@@ -92,8 +92,7 @@ export class HybridRIFClient {
     userAddress: Address,
     batchSize: number = 1
   ): Promise<TokenStatus> {
-    const requiredRifTokens = getRequiredRifTokens(batchSize);
-    const requiredAmount = parseEther(requiredRifTokens.toString());
+    const requiredAmount = getRequiredRifTokens(batchSize); // Already in wei
 
     try {
       const [balance, allowance] = await Promise.all([
